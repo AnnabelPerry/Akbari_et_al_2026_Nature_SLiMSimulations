@@ -116,7 +116,7 @@ python ${ScriptDir}/random_chunk.py \
     -chrom ${CHR} \
     -windowsize ${Window} \
     -out ${AnnotationName} 
-python ${ScriptDir}/RecombinationSubsetter.py \
+python ${ScriptDir}/subset_recombination_map.py \
     --CHR "$CHR" \
     --FullRateMapName "$FullRateMapName" \
     --AnnotationName "$AnnotationName" \
