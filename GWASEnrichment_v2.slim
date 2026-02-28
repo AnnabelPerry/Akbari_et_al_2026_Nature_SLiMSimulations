@@ -1,0 +1,879 @@
+initialize() {
+	initializeSex("A");
+	// If running from the slimgui, initialize the following constants. 
+	// Note that the constants will need to be specified from commandline 
+	// if running from there
+	if(exists("slimgui")){
+		// Set the working directory so the script does not break 
+		setwd("/Users/knigh1/Documents/SelectionProject/SimulationLiteratureReview");
+		// Set seed for troubleshooting purposes
+		defineConstant("seed", 1);
+		// Count of generations to run during the BurnIn period, at which there 
+		// is a single ancestral population
+		defineConstant("BurnIn", 500);
+		// Logical indicating whether the simulation should output cachedFitness
+		// values for samples whose phenotypes and genotypes are already
+		// slated for output
+		defineConstant("OutputCachedFitness", F);
+		// Logical indicating whether the simulation should have directional, positive
+		// selection
+		defineConstant("PositiveSelection", T);
+		// Logical indicating whether the simulation should have stabilizing selection
+		defineConstant("StabilizingSelection", F);
+		// Logical indicating whether the simulation should have background selection
+		defineConstant("BackgroundSelection", T);
+		// Logical indicating whether, if stabilizing selection is NOT present, the
+		// variant-level directional selection should occur on a de novo or standing
+		// variant
+		defineConstant("DeNovo", T);
+		// Proportion of variance in phenotypes which should be attributable to 
+		// genetic differences between individuals
+		defineConstant("heritability", 0.5);
+		// Optimum Value of Phenotype. The simulation starts out with no variation in 
+		// trait values. That is, every individual's trait value is 0. To prevent rapid 
+		// equilibration to a non-0 phenotypic optimum (which may generate spurious signals 
+		// of positive selection), the default optimum trait value should be 0
+		defineConstant("OptimumTraitValue1", 100.0);
+		// Optimum trait value after shifting. Note: If PositiveSelection bool is set to
+		// false, this value will not do anything
+		defineConstant("OptimumTraitValue2", 105.0);
+		// The generation prior to the end at which point the optimum should shift. Note: 
+		// If PositiveSelection bool is set to false, this value will not do anything
+		defineConstant("ShiftGen", (BurnIn+1500)-200);
+		// The standard deviation of the trait-to-fitness mapping normal distribution.
+		// Every generation, each individual's phenotype value will be mapped to its 
+		// quantile on a normal distribution whose mean is the Optimum Trait Value, 
+		// and whose sd is StandardDeviationOfFitnessFunction. The greater this value, 
+		// the more distant a phenotype can be from the optimum without as great a
+		// reduction in phenotype. The lower this value, the less distant a phenotype 
+		// can be from the optimum before the fitness of the individual is greatly penalized.
+		defineConstant("StandardDeviationOfFitnessFunction", 10);
+		// The expected value AND shape parameter, in that order, for the gamma 
+		// distribution from which selection coefficients for the deleterious 
+		// mutation type will be drawn. 
+		defineConstant("Gamma", c((0.97-1), 0.206));
+		// Mean of exponential distribution from Murphy et al 2022
+		defineConstant("exponential_mean", -5e-4);
+		// Positive selection coefficient for the randomly-chosen, positively-selected
+		// mutation. Will only be used if StabilizingSelection == F, BackgroundSelection == T,
+		// PositiveSelection == T
+		defineConstant("PositiveCoeff", 0.05);
+		// Minimum derived allele frequency which an allele must have if it is to be chosen 
+		// to be beneficial. Will only be used if StabilizingSelection == F, BackgroundSelection == T,
+		// PositiveSelection == T
+		defineConstant("MinDAF", 0.005);
+		// Map of exons and other gene annotations
+		defineConstant("AnnotationName", "10Kbp_Chr21_Annotation.txt");
+		// Specify the name of the file to be read in as the recombination rate map
+		defineConstant("RateMapName", "10Kbp_Chr21Recombination.txt");
+		// Specify the units in the recombination rate map file
+		defineConstant("RR_UNITS", "cM/Mb");
+		// Specify the chromosomes you would like to simulate
+		defineConstant("CHR", 21);
+		// Bool specifying you should output the mean phenotypes, both within
+		// and between timepoints, for every single timepoint
+		defineConstant("AllTimeTraitMeans", T);
+		// Mutation rate from Murphy et al. 2022
+		defineConstant("MUtotal", 1.4e-08);
+		// Input matrix of population sizes for p1 through p10, respectively
+		defineConstant("PopulationSizesName", "PopulationSizes.csv");
+		// Every "Period" generations, "TimeTransectSampleSize" individuals are outputted 
+		// to a VCF
+		defineConstant("Period", 10);
+		defineConstant("TimeTransectSampleSize", 2);
+		// At end of simulation, a greater count of individuals should be outputted than
+		// during time transects
+		defineConstant("ContemporarySampleSize", 50);
+		// Initialize a numeric constant with which all files will be named
+		defineConstant("NamingNumber", 7);
+		// Directory to which files should be outputted
+		defineConstant("OutDir", "/Users/knigh1/Documents/SelectionProject/SimulationLiteratureReview/temp");
+	}
+	setSeed(seed);
+	// Output the currently-running experiment and define a constant for 
+	// shorthand in other code-blocks
+	if(BackgroundSelection){
+		if(StabilizingSelection){
+			if(PositiveSelection){
+				cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 3, EXPERIMENTAL CONDITION.\n-----------------------------------------\n\n"));
+				defineConstant("E4EC", F);
+				defineConstant("E4NC", F);
+				// E3EC = EXPERIMENT 3, EXPERIMENTAL CONDITION
+				// Shorthand for simulation with all 3 types of selection
+				defineConstant("E3EC", T);
+				defineConstant("E3NC", F);
+				defineConstant("E2EC", F);
+				defineConstant("E2NC", F);
+				defineConstant("E1EC", F);
+				defineConstant("E1NC", F);
+			}else{
+				cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 3, NEGATIVE CONTROL.\n-----------------------------------------\n\n"));
+				defineConstant("E4EC", F);
+				defineConstant("E4NC", F);
+				defineConstant("E3EC", F);
+				// E3NC = EXPERIMENT 3, NEGATIVE CONTROL
+				// Shorthand for simulation with background and stabilizing but not directional selection
+				defineConstant("E3NC", T);
+				defineConstant("E2EC", F);
+				defineConstant("E2NC", F);
+				defineConstant("E1EC", F);
+				defineConstant("E1NC", F);
+			}
+		}else{
+			if(DeNovo){
+				if(PositiveSelection){
+					cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 4, EXPERIMENTAL CONDITION.\n-----------------------------------------\n\n"));
+					// E4EC = EXPERIMENT 4, EXPERIMENTAL CONDITION
+					// Shorthand for simulation with background and directional selection on 
+					// de novo variation but not stabilizing selection
+					defineConstant("E4EC", T);
+					defineConstant("E4NC", F);
+					defineConstant("E3EC", F);
+					defineConstant("E3NC", F);
+					defineConstant("E2EC", F);
+					defineConstant("E2NC", F);
+					defineConstant("E1EC", F);
+					defineConstant("E1NC", F);
+				}else{
+					cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 4, NEGATIVE CONTROL.\n-----------------------------------------\n\n"));
+					defineConstant("E4EC", F);
+					// E4NC = EXPERIMENT 4, NEGATIVE CONTROL
+					// Shorthand for simulation with background but not directional or 
+					// stabilizing selection	
+					defineConstant("E4NC", T);
+					defineConstant("E3EC", F);
+					defineConstant("E3NC", F);
+					defineConstant("E2EC", F);
+					defineConstant("E2NC", F);
+					defineConstant("E1EC", F);
+					defineConstant("E1NC", F);
+				}
+			}else{
+				if(PositiveSelection){
+					cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 2, EXPERIMENTAL CONDITION.\n-----------------------------------------\n\n"));
+					defineConstant("E4EC", F);
+					defineConstant("E4NC", F);
+					defineConstant("E3EC", F);
+					defineConstant("E3NC", F);
+					// E2EC = EXPERIMENT 2, EXPERIMENTAL CONDITION
+					// Shorthand for simulation with background and directional selection on 
+					// standing variation but not stabilizing selection
+					defineConstant("E2EC", T);
+					defineConstant("E2NC", F);
+					defineConstant("E1EC", F);
+					defineConstant("E1NC", F);
+				}else{
+					cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 2, NEGATIVE CONTROL.\n-----------------------------------------\n\n"));
+					defineConstant("E4EC", F);
+					defineConstant("E4NC", F);
+					defineConstant("E3EC", F);
+					defineConstant("E3NC", F);
+					defineConstant("E2EC", F);
+					// E2NC = EXPERIMENT 2, NEGATIVE CONTROL
+					// Shorthand for simulation with background but not directional or 
+					// stabilizing selection	
+					defineConstant("E2NC", T);
+					defineConstant("E1EC", F);
+					defineConstant("E1NC", F);
+				}
+			}
+		}
+	}else{
+		if(StabilizingSelection){
+			if(PositiveSelection){
+				cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 1, EXPERIMENTAL CONDITION.\n-----------------------------------------\n\n"));
+				defineConstant("E4EC", F);
+				defineConstant("E4NC", F);
+				defineConstant("E3EC", F);
+				defineConstant("E3NC", F);
+				defineConstant("E2EC", F);
+				defineConstant("E2NC", F);
+				// E1EC = EXPERIMENT 1, EXPERIMENTAL CONDITION
+				// Shorthand for simulation with stabilizing and directional but not background selection
+				defineConstant("E1EC", T);
+				defineConstant("E1NC", F);
+			}else{
+				cat(paste0("\n\n-----------------------------------------\nEXPERIMENT 1, NEGATIVE CONTROL.\n-----------------------------------------\n\n"));
+				defineConstant("E4EC", F);
+				defineConstant("E4NC", F);
+				defineConstant("E3EC", F);
+				defineConstant("E3NC", F);
+				defineConstant("E2EC", F);
+				defineConstant("E2NC", F);
+				defineConstant("E1EC", F);
+				// E1NC = EXPERIMENT 1, NEGATIVE CONTROL
+				// Shorthand for simulation with stabilizing but not directional or background selection
+				defineConstant("E1NC", T);
+			}
+		}else{
+			error_message = paste0("\n\nERROR Attempting to run a model with neither background selection nor stabilizing selection is not permitted. Change --BackgroundSelection, --StabilizingSelection, or both to T and rerun\n\n");
+			stop(message = error_message);
+		}
+	}
+	
+	// Read population sizes from CSV and set as constants
+	PopulationSizes = readCSV(PopulationSizesName);
+	// If sample size is less than any of the population sizes, end with error
+	for(p in 1:10){
+		pop_name=paste0("p", asString(p));
+		cur_row=which(PopulationSizes.getValue("Population") == pop_name);
+		if(sum(PopulationSizes.getValue("Population") == pop_name) == 1){
+			n=PopulationSizes.subsetRows(cur_row).getValue("Size");
+			// For JUST the contemporary population, make sure the sample size is not too small
+			if(pop_name == "p10"){
+				if(ContemporarySampleSize > n){
+					error_message = paste0("ERROR: Count of individuals to be sampled in FINAL generation, ", asString(ContemporarySampleSize),", is greater than total population size, ", asString(n), " of population p10.");
+					stop(message = error_message);
+				}
+			}
+			// For all other populations, check whether the count of individuals to be
+			// sampled is too small comapred to the intended time transect size
+			if(TimeTransectSampleSize > n){
+				error_message = paste0("ERROR: Count of individuals to be sampled, ", asString(TimeTransectSampleSize),", is greater than total population size, ", asString(n), " of population ", pop_name, ".");
+				stop(message = error_message);
+			}else{
+				// Define a constant for current population's size
+				defineConstant(paste0("N_", pop_name), n);
+			}
+		}else{
+			error_message = paste0("ERROR: No population named ", pop_name, " in ", PopulationSizesName, ".");
+			stop(message = error_message);
+		}
+	}
+	// Read the file of gene annotations
+	Annotations = readCSV(AnnotationName, sep="\t");
+	annotation_starts = Annotations.getValue("start");
+	annotation_ends = Annotations.getValue("end");
+	// Get Boolean vectors for each category of annotation
+	neutral = Annotations.getValue("type") == "neutral";
+	noncoding = Annotations.getValue("type") == "noncoding";
+	coding = Annotations.getValue("type") == "coding";
+	// RECOMBINATION: Read and process rate map to get total length of genome
+	RateMap = readCSV(RateMapName, sep=" ");
+	// In each line of the recombination rate map, the "COMBINED_rate(cM/Mb)"
+	// describes the rate which STARTS at "position". However, SLiM expects
+	// each position to be the END of the corresponding rate. Omit the FIRST
+	// startpoint and final rate to shift
+	unadjusted_rates = asFloat(RateMap.getValue("COMBINED_rate(cM/Mb)"));
+	all_rates = unadjusted_rates[0:(length(unadjusted_rates)-2)];
+	unadjusted_starts = asInteger(RateMap.getValue("position"));
+	all_ends = unadjusted_starts[1:(length(unadjusted_starts)-1)];
+	// Adjust the units of your recombination rates
+	if(RR_UNITS == "cM/Mb"){
+		// Multiplying by 0.01 converts from cM to probability
+		// Dividing by 1 million converts from Mb to bases
+		rates = (all_rates * 0.01)/(10^6);
+	}
+	// In real data, the data PREceding the first entry of the genetic map 
+	// often is omitted. So, you want to re-index both the recombination 
+	// endpoints and gene annotation start/endpoints. However, you first 
+	// must check which base pair position occurs first so you don't over-correct
+	// If the first gene starts PRIOR to the first recombination endpoint...
+	Shift = (annotation_starts[0] - 1);
+	RemoveRec = which(all_ends > annotation_starts[0]);
+	all_ends = all_ends[RemoveRec];
+	rates = rates[RemoveRec];
+	// Re-index and remove any recombination rows which are PRIOR to the first
+	// gene
+	ends = all_ends - Shift;
+	valid_rec_rows = which(ends > -1);
+	ends = ends[valid_rec_rows];
+	rates = rates[valid_rec_rows];
+	// Re-index annotations
+	annotation_starts = annotation_starts - Shift;
+	annotation_ends = annotation_ends - Shift;
+	// Define the final annotation endpoint as the end of the genome
+	GenomeLength=annotation_ends[length(annotation_ends) - 1];
+	// If any recombination points end after the coverage of the 
+	// annotation map, omit and replace the final endpoint with
+	// the final endpoint of the annotation map
+	ExcessRecEndpoints=which(ends > GenomeLength);
+	if(size(ExcessRecEndpoints)){
+		ends=ends[0:(ExcessRecEndpoints[0])];
+		rates=rates[0:(ExcessRecEndpoints[0])];
+		ends[ExcessRecEndpoints[0]] = GenomeLength;
+	}
+	// Get start and endpoints for each category of annotation
+	neutral_starts = annotation_starts[neutral];
+	neutral_ends = annotation_ends[neutral];
+	noncoding_starts = annotation_starts[noncoding];
+	noncoding_ends = annotation_ends[noncoding];
+	coding_starts = annotation_starts[coding];
+	coding_ends = annotation_ends[coding];
+	
+	// Output the adjusted recombination rates
+	AdjustedRecombinationRates = string(length(rates) + 1);
+	AdjustedRecombinationRates[0] = "adjusted_rate(SLiMUnits) end_bp_1indexed";
+	for(i in 1:(length(rates))){
+		// Adjust positions for 1-indexing and adjust indices
+		// for header in 'AdjustedGeneAnnotations'
+		AdjustedRecombinationRates[i] = paste(rates[i - 1], (1 + ends[i - 1]), sep = " ");
+	}
+	writeFile(paste(c(OutDir, "/", "RecombinationRates_NamingNumber", NamingNumber,".txt"), sep=""), AdjustedRecombinationRates);
+	
+	// Output the adjusted annotation map
+	AdjustedAnnotationMap = string(length(annotation_starts) + 1);
+	AdjustedAnnotationMap[0] = "start_bp_1indexed end_bp_1indexed type";
+	for(i in 1:(length(annotation_starts))){
+		// Adjust positions for 1-indexing
+		AdjustedAnnotationMap[i] = paste((1 + annotation_starts[i - 1]), (1 + annotation_ends[i - 1]), Annotations.getValue("type")[i - 1], sep = " ");
+	}
+	defineConstant("AdjustedAnnotationMapName",paste(c(OutDir, "/", "AdjustedAnnotationMap_NamingNumber", NamingNumber,".txt"), sep=""));
+	writeFile(AdjustedAnnotationMapName, AdjustedAnnotationMap);
+	
+	// MUTATIONS: Initialize mutation types
+	initializeMutationRate(MUtotal);
+	// m1 = neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	// m2 = trait-influencing, slightly-deleterious
+	initializeMutationType("m2", 0.5, "e", exponential_mean);
+	// m3 = trait-influencing, highly-deleterious
+	initializeMutationType("m3", 0.5, "g", Gamma[0], Gamma[1]);
+	// If running an Experiment 2 OR 4 Experimental condition, make it possible for
+	// a mutation to have a fixed positive selection coefficient
+	if(E2EC | E4EC){
+	    // m4 = beneficial
+	    initializeMutationType("m4", 0.5, "f", PositiveCoeff);
+	}
+	// You intend to output samples at multiple timepoints. 
+	// If you enable substitutions, samples at later 
+	// timepoints will be read as lacking variation at SNPs 
+	// present in earlier samples, when actually these later 
+	// samples are fixed for the mutation
+	m1.convertToSubstitution = F;
+	m2.convertToSubstitution = F;
+	m3.convertToSubstitution = F;
+	if(E2EC | E4EC){
+	    m4.convertToSubstitution = F;
+	}
+	GenomeLength=ends[length(ends) - 1];
+	cat(paste("Genome Length = ", GenomeLength, "bp\n", sep=""));
+	defineConstant("GenomeSize", GenomeLength);
+	// Initialize genomic element types with the intended proportion of
+	// each mutation category
+	// g1 = neutral
+	initializeGenomicElementType("g1", m1, 1.0);
+	// g2 = noncoding
+	initializeGenomicElementType("g2", c(m1, m2), c(0.60, 0.40));
+	// g3 = coding
+	initializeGenomicElementType("g3", c(m1, m3), c(0.40, 0.60));
+	
+	// Unnannotated regions can be treated as "neutral" regions
+	if(size(neutral_starts)){
+		initializeGenomicElement(g1, start=neutral_starts, end=neutral_ends);
+	}
+	// Make any noncoding-annotated genomic regions a category of 
+	// genomic element which experiences neutral and trait-influencing slightly-deleterious
+	if(size(noncoding_starts)){
+		initializeGenomicElement(g2, start=noncoding_starts, end=noncoding_ends);
+	}
+	// Make any coding-annotated genomic regions a category of 
+	// genomic element which experiences neutral and trait-influencing highly-deleterious
+	if(size(coding_starts)){
+		initializeGenomicElement(g3, start=coding_starts, end=coding_ends);
+	}
+	// Add recombination rates
+	initializeRecombinationRate(rates, ends);
+	// If you're running a simulation which does have phenotypes and you've 
+	// specified to output phenotype means and SDs at every timepoint,
+	// initialize file's name and write its header
+	if((!E2EC & !E2NC & !E4EC & !E4NC) & AllTimeTraitMeans){
+		defineConstant("TraitMeansFileName", paste0(OutDir, "/AllTimeTraitMeans_NamingNumber", NamingNumber, ".csv"));
+		AllTimeTraitMeans_Header="gen,pop,n_pop,mean_genetic_scores,sd_genetic_scores,mean_phenotypes,sd_phenotypes";
+		writeFile(TraitMeansFileName, AllTimeTraitMeans_Header);
+	}
+}
+
+1 early() {
+	// Schedule timepoint at which ancestal Out-of-Africa population splits
+	// into NE and WA
+	defineConstant("T_OOA_NE_WA", BurnIn);
+	community.rescheduleScriptBlock(s1, start = T_OOA_NE_WA, end = T_OOA_NE_WA);
+	// Schedule timepoint of termination of ancestal Out-of-Africa population
+	community.rescheduleScriptBlock(s2, start = T_OOA_NE_WA, end = T_OOA_NE_WA);
+	// Schedule timepoint at which WA splits into CHG and ANA
+	defineConstant("T_WA_CHG_ANA", (BurnIn + 700));
+	community.rescheduleScriptBlock(s3, start=T_WA_CHG_ANA, end=T_WA_CHG_ANA);
+	// Schedule timepoint of termination of WA
+	community.rescheduleScriptBlock(s4, start=T_WA_CHG_ANA, end=T_WA_CHG_ANA);
+	// Schedule timepoint at which NE splits into WHG and EHG
+	defineConstant("T_NE_WHG_EHG", (BurnIn + 900));
+	community.rescheduleScriptBlock(s5, start=T_NE_WHG_EHG, end=T_NE_WHG_EHG);
+	// Schedule timepoint of termination of NE
+	community.rescheduleScriptBlock(s6, start=T_NE_WHG_EHG, end=T_NE_WHG_EHG);
+	// Schedule timepoint at which ANA and WHG merge to form Neo
+	defineConstant("T_ANA_WHG_Neo",(BurnIn + 1241));
+	community.rescheduleScriptBlock(s7, start=T_ANA_WHG_Neo, end=T_ANA_WHG_Neo);
+	// Schedule timepoint of termination of ANA and WHG
+	community.rescheduleScriptBlock(s8, start=T_ANA_WHG_Neo, end=T_ANA_WHG_Neo);
+	// Schedule timepoint at which CHG and EHG merge to form Yam
+	defineConstant("T_CHG_EHG_Yam", (BurnIn + 1323));
+	community.rescheduleScriptBlock(s9, start=T_CHG_EHG_Yam, end=T_CHG_EHG_Yam);
+	// Schedule timepoint of termination of ANA and WHG
+	community.rescheduleScriptBlock(s10, start=T_CHG_EHG_Yam, end=T_CHG_EHG_Yam);
+	// Schedule timepoint at which Neo and Yam merge to form Bronze Age
+	defineConstant("T_Neo_Yam_BA", (BurnIn + 1334));
+	community.rescheduleScriptBlock(s11, start=T_Neo_Yam_BA, end=T_Neo_Yam_BA);
+	// Schedule timepoint of termination of ANA and WHG
+	community.rescheduleScriptBlock(s12, start=T_Neo_Yam_BA, end=T_Neo_Yam_BA);
+	defineConstant("sim_end", (BurnIn + 1500));
+	// If cachedFitness values are specified to be outputted, reschedule the
+	// script block. Otherwise, the script block will be slated to occur AFTER
+	// simulation termination and thus will never occur
+	if(OutputCachedFitness){
+		community.rescheduleScriptBlock(s13, start=(T_ANA_WHG_Neo + 1), end=(sim_end + 1));
+	}
+	// Set simulation to end directly after final cahcedFitness values are
+	// outputted
+	community.rescheduleScriptBlock(s14, start=sim_end + 1, end=sim_end + 1);
+	// You only need to adjust mutation effects from their default values if you
+	// are NOT only simulating purifying selection
+	if(!E2EC & !E2NC & !E4EC & !E4NC){
+		community.rescheduleScriptBlock(s15, start=1, end=sim_end + 1);
+		community.rescheduleScriptBlock(s16, start=1, end=sim_end + 1);
+		community.rescheduleScriptBlock(s17, start=1, end=sim_end + 1);
+		community.rescheduleScriptBlock(s18, start=1, end=sim_end + 1);
+	}
+	// If running a simulation with de novo positive selection, add a script
+	// block monitoring simulation progress
+	if(E4EC){
+		community.rescheduleScriptBlock(s19, start=(ShiftGen + 1), end=sim_end + 1);
+	}
+	// Initialize ancestal Out-of-Africa population
+	sim.addSubpop("p1", N_p1);
+}
+
+// End the simulation AFTER both the final sample AND cachedFitness values have
+// been outputted. Simulation must be ended during an early event to permit
+// cachedFitness values to be outputted prior
+s14 1e6 early() {
+	sim.simulationFinished();
+}
+// If cachedFitness is specified to be outputted, output the individuals' 
+// cachedFitness values. You have to do this in the generation PROceding the 
+// generation where the individuals were outputted because the cachedFitness 
+// values cannot be accessed during late events
+s13 1e6 first() {
+	// Get the generation PREceding the current generation
+	TP = (community.tick - 1);
+	// If the PREceding tick was 'Period' increments past the end of burnin,
+	// output the fitness values for the individuals who were sampled
+	if( (TP - BurnIn) % Period == 0 ){
+		cat(paste0("\tOutputting individuals' cachedFitness values at generation ", asString(TP), "...\n"));
+		// For each sub-population, output fitness and fitness scaling values for sampled individuals
+		for(pop in sim.subpopulations){
+			pop_name=paste0("p", pop.id);
+			// Name all files with population name, timepoint, and naming number
+			OutputPrefix=paste0(OutDir, "/", pop_name, "_Timepoint",TP,"_NamingNumber",NamingNumber);
+			inds=pop.individuals;
+			// Read IDs of individuals who were sampled
+			PhenotypeOutput = readCSV(PhenotypeFilename);
+			sample_ids = PhenotypeOutput.getValue("SLiMindex");
+			// Get cached fitness values for sample
+			newColumn = Dictionary("cachedFitness", pop.cachedFitness(indices=sample_ids));
+			// Add cached fitness values to dataframe
+			PhenotypeOutput.addKeysAndValuesFrom(newColumn);
+			// Convert dataframe to strings by first extracting each
+			// row, then pasting the row's contents together
+			cols=PhenotypeOutput.colNames;
+			PhenotypeOutputString=string(length = PhenotypeOutput.nrow + 1);
+			PhenotypeOutputString[0]=paste(cols,sep=',');
+			for(r in 1:(PhenotypeOutput.nrow)){
+				rowVector = PhenotypeOutput.subsetRows(r-1);
+				rowString=rowVector.getValue(cols[0]);
+				for(c in 1:(length(cols)-1)){
+					rowString=paste0(rowString, ",", rowVector.getValue(cols[c]));
+				}
+				PhenotypeOutputString[r] = rowString;
+			}
+			writeFile(PhenotypeFilename, PhenotypeOutputString);
+		}
+	}
+}
+
+1: late() {
+	TP = community.tick;
+	// Output tick every 1000th generation
+	if(TP % 1000 == 0){
+		cat(paste0("BurnIn Generation ", asString(TP), "/", asString(BurnIn), "...\n"));
+	}
+	inds = sim.subpopulations.individuals;
+	// Check whether a simulation with stabilizing selection is running
+	if(!E2EC & !E2NC & !E4EC & !E4NC){
+		// Retrieve each individual's genetic_score, the effect-size-weighted sum of 
+		// their genotypes and selection coefficients at phenotype-influencing
+		// mutations
+		genetic_scores = inds.sumOfMutationsOfType(m2) + inds.sumOfMutationsOfType(m3);
+		// model environmental variance, according to the target heritability
+		V_G = sd(genetic_scores)^2;
+		V_E=(V_G*(1-heritability))/heritability;
+		sqV_E = sqrt(V_E);
+		n = size(inds);
+		// Draw random noise for each individual
+		env_noise = rnorm(n, 0.0, sqV_E);
+		// Calculate phenotypes
+		phenotypes = genetic_scores + env_noise;
+		// If positive selection is enabled and the simulation has surpassed the generation
+		// at which said selection should begin, shift to the second trait optimum
+		if((E3EC | E1EC) & community.tick >= ShiftGen){
+			current_optimum=OptimumTraitValue2;
+		}else{
+			current_optimum=OptimumTraitValue1;
+		}
+		// Adjust each individual's fitness to be dependent on their phenotype
+		// Notice that the impact of deleterious mutations is calculated implicitly
+		scale = dnorm(current_optimum, current_optimum, StandardDeviationOfFitnessFunction);
+		inds.fitnessScaling = dnorm(phenotypes, current_optimum, StandardDeviationOfFitnessFunction)/scale;
+	}
+	// If running a simulation with no stabilizing selection but with purifying
+	// and directional selection, create a positively-selected mutation in a
+	// coding or noncoding region
+	if((E2EC | E4EC) & community.tick == ShiftGen){
+		// Read gene annotations
+		AdjustedAnnotationMap=readCSV(AdjustedAnnotationMapName, sep=" ");
+		// Find indices of nonneutral genomic elements
+		NonneutralIndices=which(AdjustedAnnotationMap.getValue("type") != "neutral");
+		// Vector of all starting positions for nonneutral genomic elements, 
+		// adjusting base pairs to be 0-indexed rather than 1-indexed 
+		nonneutral_starts = AdjustedAnnotationMap.getValue("start_bp_1indexed")[NonneutralIndices] - 1;
+		// Vector of all ending positions for nonneutral genomic elements, 
+		// adjusting base pairs to be 0-indexed rather than 1-indexed 
+		nonneutral_ends = AdjustedAnnotationMap.getValue("end_bp_1indexed")[NonneutralIndices] - 1;
+		// Get all genomes so you can either check allele frequencies or introduce de novo mutation
+		all_genomes = sim.subpopulations.individuals.genomes;
+		// If experiment 4 experimental condition, introduce a new, positively-selected 
+		// mutation to a coding or noncoding region
+		if(E4EC){
+			// Save the state of the simulation
+			defineConstant("StateFilename", OutDir + "/NamingNumber" + NamingNumber + "_seed" + seed + ".txt");
+         sim.outputFull(StateFilename);
+			// Sample a base pair in either a coding or noncoding region
+			sampled_index = sample(0:(length(nonneutral_starts)-1), 1);
+			sampled_basepair = sample(nonneutral_starts[sampled_index]:nonneutral_ends[sampled_index], 1);
+			// Doublecheck the sampled mutation is in a nonneutral region
+			original_index=which((AdjustedAnnotationMap.getValue("start_bp_1indexed") - 1) == nonneutral_starts[sampled_index]);
+			if(AdjustedAnnotationMap.getValue("type")[original_index] == "neutral"){
+				error_message = paste0("\n\nERROR Attempted to introduce a positively-selected mutation to a base pair (", sampled_basepair, ") in a neutral region\n\n");
+				stop(message = error_message);
+			}
+			// Introduce an m4 mutation to the chosen coding or noncoding base pair
+			// in a random genome
+         target_genome = sample(all_genomes, 1);
+         target_genome.addNewDrawnMutation(m4, sampled_basepair);
+			// Print the newly-introduced mutation
+			cat(paste0("\n\nMutation ", target_genome.mutationsOfType(m4), " introduced to genome ", target_genome, " at base pair ", asString(sampled_basepair), "\n\n"));
+		// If experiment 2 experimenal condition, assign a positive selection coeffient to a 
+		// standing, a priori neutral mutation in a coding or noncoding region
+		}else if(E2EC){
+			// Vector of all mutations
+			all_muts = sim.mutationsOfType(m1);
+			// Vector of all mutations in nonneutral regions
+			genic_muts = c();
+			for(m in 0:(length(all_muts)-1)){
+				cur_mut = all_muts[m];
+				// If this mutation is in any nonneutral region, add to vector of nonneutral mutations
+				if(sum(cur_mut.position >= nonneutral_starts & cur_mut.position <= nonneutral_ends) >= 1){
+					genic_muts = c(genic_muts, cur_mut);
+				}
+			}
+			// Whittle nonneutral mutations to only those whose allele frequencies are
+			// above the minimal value
+			genic_frqs = all_genomes.mutationFrequenciesInGenomes(genic_muts);
+			goodAF_genic_muts = genic_muts[which((genic_frqs >= MinDAF) & (genic_frqs <= 0.5))];
+			if(length(goodAF_genic_muts) > 0){
+				positive_mut = sample(goodAF_genic_muts, 1);
+				positive_mut.setMutationType(m4);
+				positive_mut.setSelectionCoeff(PositiveCoeff);
+				cat(paste0(positive_mut, " was assigned selection coefficient ", positive_mut.selectionCoeff, "\n"));
+				// If no mutations at the positive selection generation have satisfactory minimal
+				// allele frequencies, halt the simulation 
+			}else{
+				error_message = paste0("\n\nERROR No mutations in nonneutral regions at generation", ShiftGen, " have allele frequency at or above ", MinDAF, "\n\n");
+				stop(message = error_message);
+			}
+		}
+	}
+	// If the current tick is 'Period' increments past the end of burnin,
+	// AND it is past 400 generations before present, begin sampling
+	if(((TP - BurnIn) % Period == 0) & (TP >= (BurnIn + 1500 - 400))){
+		// If not yet at the simulation end, output a time transect
+		if(TP < sim_end){
+			cat(paste0("\nSampling ", TimeTransectSampleSize, " individuals from each sub-population at generation ", asString(TP), "...\n"));
+			sample_size=TimeTransectSampleSize;
+			// If at the simulation end, output contemporary
+		}else if(TP == sim_end){
+			cat(paste0("\nSampling ", ContemporarySampleSize, " individuals from each sub-population at generation ", asString(TP), "...\n"));
+			sample_size=ContemporarySampleSize;
+		}
+		// Output all m2 and m3 mutations
+		muts_notm1 = c(sim.mutationsOfType(m2), sim.mutationsOfType(m3));
+		// If m4 mutations exist, also output those
+		if(E2EC | E4EC){
+		    muts_notm1 = c(muts_notm1, sim.mutationsOfType(m4));
+		}
+		// Entries in the same row should be separated by tabs
+		MID = paste(c("MID", asString(muts_notm1.id)), sep="\t");
+		MT = paste(c("MT", asString(muts_notm1.mutationType.id)), sep="\t");
+		// If simulation has both stabilizing selection AND background selection,
+		// the SLiM selection coefficients are actually Betas while the true
+		// selection coefficients are in a mutation object
+		if(E3EC | E3NC){
+			S = paste(c("S", muts_notm1.getValue('s')), sep="\t");
+			BETA = paste(c("BETA", asString(muts_notm1.selectionCoeff)), sep="\t");
+		// If the simulation has only purifying selection, then the selection
+		// coefficients truly are selection coefficients while the Betas are all 0s
+		}else if(E2EC | E2NC | E4EC | E4NC){
+			S = paste(c("S", asString(muts_notm1.selectionCoeff)), sep="\t");
+			BETA = paste(c("BETA", rep(0, length(muts_notm1))), sep="\t");
+		// If the simulation has ONLY stabilizing selection, the selection coefficients
+		// are actually Betas so the S column should be all 0s
+		}else if(E1EC | E1NC){
+			S = paste(c("S", rep(0, length(muts_notm1))), sep="\t");
+			BETA = paste(c("BETA", asString(muts_notm1.selectionCoeff)), sep="\t");
+		}
+		// Separate rows by newlines
+		MutInfo=paste(c(MID, S, BETA, MT), sep="\n");
+		// File with per-mutation information
+		MutationFileName=paste0(OutDir, "/Mutations_Timepoint",TP,"_NamingNumber",NamingNumber, ".tab");
+		writeFile(MutationFileName, MutInfo);
+		
+		// From each existing sub-population, sample a pre-specified count of individuals
+		for(pop in sim.subpopulations){
+			pop_name=paste0("p", pop.id);
+			// Name all files with population name, timepoint, and naming number
+			OutputPrefix=paste0(OutDir, "/", pop_name, "_Timepoint",TP,"_NamingNumber",NamingNumber);
+			VCFName = paste0(OutputPrefix,".vcf");
+			inds=pop.individuals;
+			sample_ids = sample(0:(length(inds)-1), size = sample_size);
+			output_sample = inds[sample_ids];
+			// Output the individuals to a VCF. Output multiallelics so any SNPs 
+			// which are present in a single-allelic state in prior generations 
+			// will not be erroneously interpreted as having 0 allele frequency
+			// after becoming multiallelic
+			output_sample.genomes.outputVCF(VCFName, outputMultiallelics = T);
+		}
+		// If the current tick is NOT divisible by the period at which you want VCFs to be outputted, 
+		// do not output any VCFs
+	}
+	// If you're running an experiment with phenotypes and you've specified to 
+	// output phenotype means and SDs at every timepoint, output the means and 
+	// standard deviations of all phenotypes across individuals within a 
+	// subpopulation and timepoints
+	if(!E2EC & !E2NC & !E4EC & !E4NC & AllTimeTraitMeans){
+		// For each sub-population, collect mean and standard deviation of their 
+		// phenotypes and genetic scores
+		inds = sim.subpopulations.individuals;
+		for(subp in sim.subpopulations){
+			// Retrieve indices for current subpopulation
+			indices = which(inds.subpopulation == subp);
+			// Get phenotypes and genetic scores for current
+			// subpopulation
+			subp_phenotypes = phenotypes[indices];
+			subp_gs = genetic_scores[indices];
+			// Compute mean and sd
+			sumstats_vector = c(asString(TP), asString(subp.id), asString(length(indices)), asString(mean(subp_gs)), asString(sd(subp_gs)), asString(mean(subp_phenotypes)), asString(sd(subp_phenotypes)));
+			// Insert comma-separators between values
+			new_row=paste(sumstats_vector, sep=",");
+			// Append the new means and standard deviations to the file
+			writeFile(TraitMeansFileName, new_row, append=T);
+		}
+	}
+}
+
+s18 1e6 mutation(m2) {
+	// Trait-influencing, deleterious mutations (m2 and m3) had selection 
+	// coefficients drawn at their inception. If running an Experiment 1 or 3 
+	// simulation, use Eyre-Walker Model to translate the pre-assigned 
+	// selection coefficient to trait Beta
+	tau = 0.5;
+	sigma2 = 0.1;
+	Ne = 5000;
+	s = mut.selectionCoeff;
+	mut.setValue("s", s);
+	e = rnorm(1, 0.0, sigma2);
+	delta = rbinom(1,1,0.5)*2-1;
+	beta = delta*abs(4*Ne*s)^tau*(1+e);
+	mut.setSelectionCoeff(beta);
+	return T;
+}
+s17 1e6 mutation(m3) {
+	// Trait-influencing, deleterious mutations (m2 and m3) had selection 
+	// coefficients drawn at their inception. If running an Experiment 1 or 3  
+	// simulation, use Eyre-Walker Model to translate the pre-assigned 
+	// selection coefficient to trait Beta
+	tau = 0.5;
+	sigma2 = 0.1;
+	Ne = 5000;
+	s = mut.selectionCoeff;
+	mut.setValue("s", s);
+	e = rnorm(1, 0.0, sigma2);
+	delta = rbinom(1,1,0.5)*2-1;
+	beta = delta*abs(4*Ne*s)^tau*(1+e);
+	mut.setSelectionCoeff(beta);
+	return T;
+}
+s15 1e6 mutationEffect(m2) {
+	// If running an Experiment 3 simulation, m2 and m3 mutations' "selectionCoeff"
+	// now contains trait-effect Beta rather than selection coefficient after the 
+	// "mutation()" effects. So, you need to manually adjust mutationEffect
+	if(E3EC | E3NC){
+		h = asInteger(homozygous) * 0.5 + 0.5;
+		s = mut.getValue("s");
+		effect2 = 1+h*s;
+		return effect2;
+		// If running an Experiment 1 simulation, there is no variant-level selection. So,
+		// mutation effects should be rendered null
+	}else if(E1EC | E1NC){
+		return 1.0;
+	}
+}
+s16 1e6 mutationEffect(m3) {
+	// If running an Experiment 3 simulation, m2 and m3 mutations' "selectionCoeff"
+	// now contains trait-effect Beta rather than selection coefficient after the 
+	// "mutation()" effects. So, you need to manually adjust mutationEffect
+	if(E3EC | E3NC){
+		h = asInteger(homozygous) * 0.5 + 0.5;
+		s = mut.getValue("s");
+		effect2 = 1+h*s;
+		return effect2;
+		// If running an Experiment 1 simulation, there is no variant-level selection. So,
+		// mutation effects should be rendered null
+	}else if(E1EC | E1NC){
+		return 1.0;
+	}
+}
+// Generate NE and WA sub-populations from out-of-Africa
+s1 1e6 early() {
+	// NE is N_p2 individuals with 100% out-of-Africa ancestry
+	sim.addSubpop("p2", N_p2);
+	p2.setMigrationRates(p1, 1.0);
+	// WA is N_p3 individuals with 100% out-of-Africa ancestry
+	sim.addSubpop("p3", N_p3);
+	p3.setMigrationRates(p1, 1.0);
+}
+
+// Terminate out-of-Africa population
+s2 1e6 late() {
+	p2.setMigrationRates(p1, 0.0);
+	p3.setMigrationRates(p1, 0.0);
+	p1.setSubpopulationSize(0);
+}
+// Generate CHG and ANA sub-populations from WA
+s3 1e6 early() {
+	// CHG is N_p4 individuals with 100% WA ancestry
+	sim.addSubpop("p4", N_p4);
+	p4.setMigrationRates(p3, 1.0);
+	// ANA is N_p5 individuals with 100% WA ancestry
+	sim.addSubpop("p5", N_p5);
+	p5.setMigrationRates(p3, 1.0);
+}
+
+// Terminate WA population
+s4 1e6 late() {
+	p4.setMigrationRates(p3, 0.0);
+	p5.setMigrationRates(p3, 0.0);
+	p3.setSubpopulationSize(0);
+}
+// Generate WHG and EHG sub-populations from NE
+s5 1e6 early() {
+	// WHG is N_p6 individuals with 100% NE ancestry
+	sim.addSubpop("p6", N_p6);
+	p6.setMigrationRates(p2, 1.0);
+	// EHG is N_p7 individuals with 100% NE ancestry
+	sim.addSubpop("p7", N_p7);
+	p7.setMigrationRates(p2, 1.0);
+}
+
+// Terminate NE population
+s6 1e6 late() {
+	p6.setMigrationRates(p2, 0.0);
+	p7.setMigrationRates(p2, 0.0);
+	p2.setSubpopulationSize(0);
+}
+// Generate Neo from WHG and ANA
+s7 1e6 early() {
+	// Neo is N_p8 individuals with 25% WHG, 75% ANA ancestry
+	sim.addSubpop("p8", N_p8);
+	p8.setMigrationRates(c(p6, p5), c(0.25, 0.75));
+}
+
+// Terminate WHG and ANA
+s8 1e6 late() {
+	p8.setMigrationRates(c(p6, p5), c(0.0, 0.0));
+	p6.setSubpopulationSize(0);
+	p5.setSubpopulationSize(0);
+}
+
+// Generate Yam from CHG and EHG
+s9 1e6 early() {
+	// Yam is N_p9 individuals with 50% CHG, 50% EHG ancestry
+	sim.addSubpop("p9", N_p9);
+	p9.setMigrationRates(c(p4, p7), c(0.5, 0.5));
+}
+
+// Terminate WHG and ANA
+s10 1e6 late() {
+	p9.setMigrationRates(c(p4, p7), c(0.0, 0.0));
+	p4.setSubpopulationSize(0);
+	p7.setSubpopulationSize(0);
+}
+// Generate Bronze Age from Neo and Yam
+s11 1e6 early() {
+	// Bronze Age is N_p10 individuals with 50% Neo, 50% Yam ancestry
+	sim.addSubpop("p10", N_p10);
+	p10.setMigrationRates(c(p8, p9), c(0.5, 0.5));
+}
+
+// Terminate Neo and Yam
+s12 1e6 late() {
+	p10.setMigrationRates(c(p8, p9), c(0.0, 0.0));
+	p8.setSubpopulationSize(0);
+	p9.setSubpopulationSize(0);
+}
+
+// If running a simulation with de novo positively-selected variation, periodically
+// check whether the de novo variant has been expunged from the genome and, if so,
+// restart the simulation at the saved tick
+s19 1e6 late() {
+	mut = sim.mutationsOfType(m4);
+	if (size(mut) == 1){
+		if (sim.mutationFrequencies(NULL, mut) > MinDAF){
+			cat("\n\nPositively-selected mutation introduced with seed " + asString(getSeed()) + " successfully reached allele frequency " + asString(MinDAF) );
+			community.deregisterScriptBlock(self);
+		}
+	}else{
+		new_seed=rdunif(1, 0, asInteger(2^62) - 1);
+		cat("\nPositively-selected mutation introduced with seed " + asString(getSeed()) + " lost at generation " + asString(community.tick) + "\nRestarting at generation " + asString(ShiftGen) + ", seed " + asString(new_seed)+ "...\n\n");
+		// go back to tick ShiftGen
+		sim.readFromPopulationFile(StateFilename);
+      // start a newly seeded run
+      setSeed(new_seed);
+		// Read gene annotations
+		AdjustedAnnotationMap=readCSV(AdjustedAnnotationMapName, sep=" ");
+		// Find indices of nonneutral genomic elements
+		NonneutralIndices=which(AdjustedAnnotationMap.getValue("type") != "neutral");
+		// Vector of all starting positions for nonneutral genomic elements, 
+		// adjusting base pairs to be 0-indexed rather than 1-indexed 
+		nonneutral_starts = AdjustedAnnotationMap.getValue("start_bp_1indexed")[NonneutralIndices] - 1;
+		// Vector of all ending positions for nonneutral genomic elements, 
+		// adjusting base pairs to be 0-indexed rather than 1-indexed 
+		nonneutral_ends = AdjustedAnnotationMap.getValue("end_bp_1indexed")[NonneutralIndices] - 1;
+		// Get all genomes so you can either check allele frequencies or introduce de novo mutation
+		all_genomes = sim.subpopulations.individuals.genomes;
+		// Sample a base pair in either a coding or noncoding region
+		sampled_index = sample(0:(length(nonneutral_starts)-1), 1);
+		sampled_basepair = sample(nonneutral_starts[sampled_index]:nonneutral_ends[sampled_index], 1);
+		// Doublecheck the sampled mutation is in a nonneutral region
+		original_index=which((AdjustedAnnotationMap.getValue("start_bp_1indexed") - 1) == nonneutral_starts[sampled_index]);
+		if(AdjustedAnnotationMap.getValue("type")[original_index] == "neutral"){
+			error_message = paste0("\n\nERROR Attempted to introduce a positively-selected mutation to a base pair (", sampled_basepair, ") in a neutral region\n\n");
+			stop(message = error_message);
+		}
+		// Introduce an m4 mutation to the chosen coding or noncoding base pair
+		// in a random genome
+      target_genome = sample(all_genomes, 1);
+      target_genome.addNewDrawnMutation(m4, sampled_basepair);
+		// Print the newly-introduced mutation
+		cat(paste0("\n\nMutation ", target_genome.mutationsOfType(m4), " introduced to genome ", target_genome, " at base pair ", asString(sampled_basepair), "\n\n"));
+	}
+}
