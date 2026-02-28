@@ -4,11 +4,12 @@
 #SBATCH -t 12:00:00
 #SBATCH -p short
 #SBATCH --mem=3G
-#SBATCH -o GWASEnrichment_v2_%A.out
-#SBATCH -e GWASEnrichment_v2_%A.err
+#SBATCH -o simulate_%A.out
+#SBATCH -e simulate_%A.err
 #SBATCH --mail-type=FAIL,END            # Email notifications for job finishing, regardless of status
-#SBATCH --mail-user=annabelperry@g.harvard.edu  # Your email address
+#SBATCH --mail-user=Your_email_address
 
+# Change this to your version of GCC
 module load gcc/14.2.0
 
 ParameterFile=""
@@ -30,7 +31,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-echo -e "\nRunning GWASEnrichment_v2.slim with these Parameters:"
+echo -e "\nRunning simulate.slim with these Parameters:"
 # Crack parameters from the file
 cd ${ParameterDir}
 while IFS= read -r line; do
@@ -77,28 +78,28 @@ key="${BackgroundSelection}${PositiveSelection}${StabilizingSelection}${DeNovo}"
 # Evaluate the conditions using case
 case "$key" in
     TTFT)
-        echo "EXPERIMENT4_EXPERIMENTAL Background selection and directional selection on de novo mutation, but no stabilizing selection" > "${ReplicateParameter}"
+        echo "MODEL2.2_EXPERIMENTAL Background selection and directional selection on de novo mutation, but no stabilizing selection" > "${ReplicateParameter}"
         ;;
     TFFT)
-        echo "EXPERIMENT4_NEGATIVECONTROL Background selection, but not directional selection or stabilizing selection" > "${ReplicateParameter}"
+        echo "MODEL2.2_NEGATIVECONTROL Background selection, but not directional selection or stabilizing selection" > "${ReplicateParameter}"
         ;;
     TTT*)
-        echo "EXPERIMENT3_EXPERIMENTAL Background selection, stabilizing selection, and directional selection" > "${ReplicateParameter}"
+        echo "MODEL3_EXPERIMENTAL Background selection, stabilizing selection, and directional selection" > "${ReplicateParameter}"
         ;;
     TFT*)
-        echo "EXPERIMENT3_NEGATIVECONTROL Background selection and stabilizing selection, but not directional selection" > "${ReplicateParameter}"
+        echo "MODEL3_NEGATIVECONTROL Background selection and stabilizing selection, but not directional selection" > "${ReplicateParameter}"
         ;;
     TTFF)
-        echo "EXPERIMENT2_EXPERIMENTAL Background selection and directional selection on standing mutation, but not stabilizing selection" > "${ReplicateParameter}"
+        echo "MODEL2.1_EXPERIMENTAL Background selection and directional selection on standing mutation, but not stabilizing selection" > "${ReplicateParameter}"
         ;;
     TFFF)
-        echo "EXPERIMENT2_NEGATIVECONTROL Background selection only, neither directional nor stabilizing selection" > "${ReplicateParameter}"
+        echo "MODEL2.1_NEGATIVECONTROL Background selection only, neither directional nor stabilizing selection" > "${ReplicateParameter}"
         ;;
     FFT*)
-        echo "EXPERIMENT1_NEGATIVECONTROL Stabilizing selection only, neither directional nor background selection" > "${ReplicateParameter}"
+        echo "MODEL1_NEGATIVECONTROL Stabilizing selection only, neither directional nor background selection" > "${ReplicateParameter}"
         ;;
     FTT*)
-        echo "EXPERIMENT1_EXPERIMENTAL Stabilizing and directional selection, no background selection" > "${ReplicateParameter}"
+        echo "MODEL1_EXPERIMENTAL Stabilizing and directional selection, no background selection" > "${ReplicateParameter}"
         ;;
     *)
         echo "No matching condition found." > "${ReplicateParameter}"
@@ -111,7 +112,7 @@ source activate SelectionSimulations
 AnnotationName="${replicate_dir}/Annotation_NamingNumber${NamingNumber}.tab"
 FullRateMapName="Chr${CHR}Recombination.txt"
 RateMapName="Recombination_NamingNumber${NamingNumber}.tab"
-python /n/data1/hms/genetics/reich/1000Genomes/ali/workspace/sel_paper/round4/simulations/genomic_element/random_chunk.py \
+python ${ScriptDir}/random_chunk.py \
     -chrom ${CHR} \
     -windowsize ${Window} \
     -out ${AnnotationName} 
@@ -161,7 +162,7 @@ ${SLiMDir}/./slim \
         -d RateMapName="'${replicate_dir}/${RateMapName}'" \
         -d PopulationSizesName="'${InDir}/${PopulationSizesName}'" \
         -d OutDir="'${replicate_dir}'" \
-    ${ScriptDir}/GWASEnrichment_v2.slim
+    ${ScriptDir}/simulate.slim
 end_time=$(date +%s)
 sim_execution_time=$((end_time - start_time))
 echo -e "\n\n====================================\nRuntime for ${ParameterFile}:\n${sim_execution_time}\n====================================\n"
