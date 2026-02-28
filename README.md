@@ -386,3 +386,7 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
 	the main text sections "[x] Test of selection on single variants" and 
 	"Forward-in-time simulations of selection in the context of European history" 
 	as well as Supplementary Section 2
+
+	Model1Control_ParameterFile.txt
+		Parameter file which, when inserted as input to simulate.sh, runs Model 1
+		without directional selection
