@@ -383,9 +383,11 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
 
 /parameter_files
 	Files to be inputted into simulate.sh in order to run the 3 models described in
-	the main text sections "[x] Test of selection on single variants" and 
+	the main text sections "Test of selection on single variants" and 
 	"Forward-in-time simulations of selection in the context of European history" 
-	as well as Supplementary Section 2
+	as well as Supplementary Section 2. 
+	To use any of these parameter files, you will need to adjust the directories
+	named in the file to the actual directories for the indicated variable
 
 	Model1Control_ParameterFile.txt
 		Parameter file which, when inserted as input to simulate.sh, runs Model 1
