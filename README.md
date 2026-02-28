@@ -1,19 +1,27 @@
 # Akbari_et_al_2026_Nature_SLiMSimulations
-SLiM simulations described in sections "Test of selection on single variants", "Forward-in-time simulations of selection in the context of European history", and Supplementary Section 2 of Akbari et al. 2026, Nature
+SLiM simulations described in sections "Test of selection on single variants", 
+"Forward-in-time simulations of selection in the context of European history", 
+and Supplementary Section 2 of Akbari et al. 2026, Nature
 
-simulate.sh
+/scripts
+	Contains scripts for running simulations. Note that all necessary parts of
+	the simulation are run as part of the bash script simulate.sh. All other
+	scripts in this sub-directory are run as part of simulate.sh.
+	
+	simulate.sh
         Runs simulation ( simulate.slim ) with gene-annotation map and
         Eyre Walker selection coefficient-trait effect mapping, on a randomly-
         selected genomic segment.
-        
+        Below is an example commandline run (assuming the GitHub repository is
+		in your Downloads directory)
         `````````````````````     Begin Code Block        `````````````````````` 
         
-        BaseDir="/n/groups/reich/anp9168/SelectionProject/GWASEnrichmentSimulation"
-        ParameterDir="${BaseDir}/ParameterFiles_Final"
+        BaseDir="~/Downloads"
+        ParameterDir="${BaseDir}/Akbari_et_al_2026_Nature_SLiMSimulations/parameter_files"
         ParameterFile="MODEL1EXPERIMENTAL_ParameterFile.txt"
-        cd ${BaseDir}/JobFiles
+		ScriptDir="${BaseDir}/Akbari_et_al_2026_Nature_SLiMSimulations/scripts"
         
-        sbatch --array=1-100 ${BaseDir}/Scripts/simulate.sh \
+        sbatch --array=1-100 ${ScriptDir}/simulate.sh \
                             --ParameterFile ${ParameterFile} \
                             --ParameterDir ${ParameterDir}
                        
@@ -23,7 +31,7 @@ simulate.sh
             
         --ParameterFile
             File with all parameter names listed under the "Inputs" section of
-            `GWASEnrichment_v2.slim` (except ${seed} and ${NamingNumber}, which are
+            `simulate.slim` (except ${seed} and ${NamingNumber}, which are
             randomly generated during execution of this bash script). The upper 
             bound of the --array flag is the count of simulations with the 
             parameters in this file which you would like to run in parallel ( a 
@@ -32,7 +40,7 @@ simulate.sh
             ${ParameterFile}.log will be generated in ${ParameterDir} with the
             NamingNumber and seed for each replicate
     
-simulate.slim
+	simulate.slim
         SLiM simulation code. An example run is below, but note this simulation
         is run as part of simulate.sh
         `````````````````````     Begin Code Block        `````````````````````` 
@@ -43,9 +51,9 @@ simulate.slim
         PositiveSelection=F
         BackgroundSelection=F
         DeNovo=F
-	      MinDAF=0.05
-	      PositiveCoeff=0.01
-	      NamingNumber=7
+	    MinDAF=0.05
+	    PositiveCoeff=0.01
+	    NamingNumber=7
         MUtotal="7.0e-05"
         BurnIn=5
         heritability="0.2"
@@ -259,7 +267,7 @@ simulate.slim
     	    Directory into which output files should be directed
     	
         --ScriptDir
-            Location of RunSimulation.sh, Posthoc.sh, and GWASEnrichment.slim
+            Location of random_chunk.py, subset_recombination_map.py, and simualte.slim
             	
         Outputs:
             RecombinationRates_NamingNumber${NamingNumber}.txt
@@ -307,9 +315,9 @@ simulate.slim
 		    selection coefficient, trait-effect beta, and mutation type
 		    for all m2 and m3 mutations at a given timepoint
 
-random_chunk.py
+	random_chunk.py
         Note this script is run as part of simulate.sh. This script MUST be run
-        prior to RecombinationSubsetter.py. Generates a tab-separated text file 
+        prior to subset_recombination_map.py. Generates a tab-separated text file 
         with realistic genomic elements. The script will ensure that the ratio 
         of exons deviates by less than 50% from the chromosomal average, and 
         the spanning window size deviates by less than 10% from the specified 
@@ -324,3 +332,57 @@ random_chunk.py
             Required. Should be an integer or float.
         -out
             Required. Specifies the output file path.
+	
+    subset_recombination_map.py
+        Note this script is run as part of simulate.sh. Subsets recombination rate 
+		map to the genomic window represented by an annotation map which was ALREADY 
+		subetted random_chunk.py.
+        
+        `````````````````````     Begin Code Block        `````````````````````` 
+        BaseDir="/n/groups/reich/anp9168/SelectionProject"
+        
+        CHR=21
+        FullRateMapName="Chr${CHR}Recombination.txt"
+        RateMapName="10Kbp_Chr${CHR}Recombination.txt"
+        AnnotationName="10Kbp_Chr21_Annotation.txt"
+        InDir="${BaseDir}/InputFiles"
+        replicate_dir="${BaseDir}/GWASEnrichmentSimulation/Troubleshooting"
+        
+        cd ${BaseDir}/GWASEnrichmentSimulation/Scripts
+        
+        # Run the script
+        source activate SelectionSimulations
+        python subset_recombination_map.py \
+            --CHR "$CHR" \
+            --FullRateMapName "$FullRateMapName" \
+            --AnnotationName "$AnnotationName" \
+            --RateMapName "$RateMapName" \
+            --replicate_dir "$replicate_dir" \
+            --InDir "$InDir"
+        conda deactivate
+        ``````````````````````     End Code Block        ``````````````````````` 
+        --CHR
+            Chromosome number
+            
+        --FullRateMapName
+            Name of full recombination rate map. Assumed to be space-separated
+            with the header: chr position COMBINED_rate(cM/Mb) Genetic_Map(cM)
+            
+        --AnnotationName
+            FULL PATH to output of random_chunk.py
+            
+        --RateMapName
+            Name of rate map to be outputted, which will be subsetted to same
+            window as represented in AnnotationName
+            
+        --replicate_dir
+            Directory where ${RateMapName} will be sent
+            
+        --InDir
+    	    Directory of ${FullRateMapName}
+
+/parameter_files
+	Files to be inputted into simulate.sh in order to run the 3 models described in
+	the main text sections "[x] Test of selection on single variants" and 
+	"Forward-in-time simulations of selection in the context of European history" 
+	as well as Supplementary Section 2
