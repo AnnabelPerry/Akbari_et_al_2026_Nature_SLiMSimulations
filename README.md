@@ -17,9 +17,9 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
         `````````````````````     Begin Code Block        `````````````````````` 
         
         BaseDir="~/Downloads"
-        ParameterDir="${BaseDir}/Akbari_et_al_2026_Nature_SLiMSimulations/parameter_files"
+        ParameterDir="${BaseDir}/slim-selection-simulations/parameter_files"
         ParameterFile="Model1Experimental_ParameterFile.txt"
-		ScriptDir="${BaseDir}/Akbari_et_al_2026_Nature_SLiMSimulations/scripts"
+		ScriptDir="${BaseDir}/slim-selection-simulations/scripts"
         
         sbatch --array=1-100 ${ScriptDir}/simulate.sh \
                             --ParameterFile ${ParameterFile} \
@@ -44,7 +44,7 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
         SLiM simulation code. An example run is below, but note this simulation
         is run as part of simulate.sh
         `````````````````````     Begin Code Block        `````````````````````` 
-        InDir="/n/groups/reich/anp9168/SelectionProject/InputFiles"
+        InDir="~/Downloads/slim-selection-simulations/inputs"
         
         seed=1
         StabilizingSelection=T
@@ -73,8 +73,8 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
         BMapName="${InDir}/TroubleshootingBGS.bed"
         RateMapName="${InDir}/TroubleshootingRecombination.txt"
         PopulationSizesName="${InDir}/Troubleshooting_PopulationSizes.csv"
-        OutDir="/n/groups/reich/anp9168/SelectionProject/GWASEnrichmentSimulation/Troubleshooting"
-        ScriptDir="/n/groups/reich/anp9168/SelectionProject/GWASEnrichmentSimulation/Scripts"
+        OutDir="~/Downloads/slim-selection-simulations/outputs"
+        ScriptDir="/~/Downloads/slim-selection-simulations/scripts"
         SLiMDir="/n/groups/reich/anp9168/software/SLiM/build"
         
         ${SLiMDir}/./slim \
@@ -339,16 +339,16 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
 		subetted random_chunk.py.
         
         `````````````````````     Begin Code Block        `````````````````````` 
-        BaseDir="/n/groups/reich/anp9168/SelectionProject"
+        BaseDir="~/Downloads/slim-selection-simulations"
         
         CHR=21
         FullRateMapName="Chr${CHR}Recombination.txt"
         RateMapName="10Kbp_Chr${CHR}Recombination.txt"
         AnnotationName="10Kbp_Chr21_Annotation.txt"
-        InDir="${BaseDir}/InputFiles"
-        replicate_dir="${BaseDir}/GWASEnrichmentSimulation/Troubleshooting"
+        InDir="${BaseDir}/inputs"
+        replicate_dir="${BaseDir}/outputs"
         
-        cd ${BaseDir}/GWASEnrichmentSimulation/Scripts
+        cd ${BaseDir}/scripts
         
         # Run the script
         source activate SelectionSimulations
@@ -420,3 +420,11 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
 	Model3Experimental_ParameterFile.txt
 		Parameter file which, when inputted to simulate.sh, runs Model 3
 		with polygenic directional selection
+
+	/power_analysis
+		Parameter files required to reproduce the experiments described in sub-
+		section "Power analysis of GLMM and GLM and co-linearity" of
+		Supplementary Materials section 2. Files are named in the below format:
+		Window100Kbp_S${PositiveCoeff}_ShiftGen_${ShiftGen}.txt
+		... where ${PositiveCoeff} is a placeholder for the --PositiveCoeff value
+		while ${ShiftGen} is a placeholder for --ShiftGen value
