@@ -3,19 +3,12 @@ SLiM simulations described in sections "Test of selection on single variants",
 "Forward-in-time simulations of selection in the context of European history", 
 and SUPPLEMENTARY INFORMATION SECTION 2 of Akbari et al. 2026, Nature
 
+See the README.md files within each sub-directory for full descriptions of its contents
+
 IMPORTANT The following file must be downloaded and placed in the `/inputs` 
 sub-directory prior to running this code:
 https://alkesgroup.broadinstitute.org/Eagle/downloads/tables/genetic_map_hg19_withX.txt.gz
 
-### /scripts
-
-
-
-## /inputs
-Data files required for input into simulations
-
-`non_overlapping_full_span_partition.tsv` Tab-separated file of UCSC Genome Browser (GENCODE_V47lift37 annotations), preprocessed according 
-to the methods described in SUPPLEMENTARY INFORMATION SECTION 2 > SIMULATION OF EUROPEAN DEMOGRAPHIC HISTORY > Mutations
 		
 ## /parameter_files
 Files to be inputted into simulate.sh in order to run the 3 models described in the main text sections "Test of selection on single variants" 
