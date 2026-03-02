@@ -421,10 +421,11 @@ and Supplementary Section 2 of Akbari et al. 2026, Nature
 		Parameter file which, when inputted to simulate.sh, runs Model 3
 		with polygenic directional selection
 
-	/power_analysis
-		Parameter files required to reproduce the experiments described in sub-
-		section "Power analysis of GLMM and GLM and co-linearity" of
-		Supplementary Materials section 2. Files are named in the below format:
+	Parameter files required to reproduce the experiments described in sub-
+	section "Power analysis of GLMM and GLM and co-linearity" of Supplementary 
+	Materials section 2 are named in the below format:
+	
 		Window100Kbp_S${PositiveCoeff}_ShiftGen_${ShiftGen}.txt
-		... where ${PositiveCoeff} is a placeholder for the --PositiveCoeff value
-		while ${ShiftGen} is a placeholder for --ShiftGen value
+		
+	... where ${PositiveCoeff} is a placeholder for the --PositiveCoeff value
+	while ${ShiftGen} is a placeholder for --ShiftGen value
