@@ -3,11 +3,11 @@ BurnIn:	50000
 ContemporarySampleSize:	1000
 Gamma:	c((0.97-1),0.206)
 exponential_mean:	-5e-4
-InDir:	/n/groups/reich/anp9168/SelectionProject/InputFiles
+InDir:	~/Downloads/Akbari_et_al_2026_Nature_SLiMSimulations/inputs
 MUtotal:	1.4e-08
 OptimumTraitValue1:	100.0
 OptimumTraitValue2:	105.0
-OutDir:	/n/data1/hms/genetics/reich/1000Genomes/ali/workspace/sel_paper/round4/simulations/10Mbp_Balancing_Background/RawSim
+OutDir:	~/Downloads/Akbari_et_al_2026_Nature_SLiMSimulations/outputs
 Period:	10
 StabilizingSelection:	F
 PositiveSelection:	T
@@ -21,7 +21,7 @@ MemoryEfficiency:	F
 PopulationSizesName:	PopulationSizes.csv
 RR_UNITS:	"cM/Mb"
 SLiMDir:	/n/groups/reich/anp9168/software/SLiM/build
-ScriptDir:	/n/groups/reich/anp9168/SelectionProject/GWASEnrichmentSimulation/Scripts
+ScriptDir:	~/Downloads/Akbari_et_al_2026_Nature_SLiMSimulations/scripts
 ShiftGen:	51300
 StandardDeviationOfFitnessFunction:	10
 TimeTransectSampleSize:	100
