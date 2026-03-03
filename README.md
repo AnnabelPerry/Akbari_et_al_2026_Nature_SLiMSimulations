@@ -10,5 +10,11 @@ sub-directory prior to running this code:
 https://alkesgroup.broadinstitute.org/Eagle/downloads/tables/genetic_map_hg19_withX.txt.gz
 
 If all files are correctly set up, then the below command:
+
+```
+
 ~/slim-selection-simulations/scripts/./simulate.sh --ParameterFile Test_ParameterFile.txt --ParameterDir ~/slim-selection-simulations/parameter_files
+
+```
+
 ... should yield the expected output files described under simulate.slim in /scripts/README.md
