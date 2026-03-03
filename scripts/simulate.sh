@@ -115,7 +115,8 @@ RateMapName="Recombination_NamingNumber${NamingNumber}.tab"
 python ${ScriptDir}/random_chunk.py \
     -chrom ${CHR} \
     -windowsize ${Window} \
-    -out ${AnnotationName} 
+    -out ${AnnotationName}  \
+    -input_directory ${InDir}
 python ${ScriptDir}/subset_recombination_map.py \
     --CHR "$CHR" \
     --FullRateMapName "$FullRateMapName" \
